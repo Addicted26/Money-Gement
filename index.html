@@ -53,11 +53,18 @@
             </select>
           </div>
           <div>
-            <label for="edit-kategori">Kategori:</label>
+            <label for="edit-kategori-select">Kategori:</label>
+            <select id="edit-kategori-select">
+              <!-- Opsi diisi JS -->
+              <option value="">-- Pilih Kategori --</option>
+              <option value="add_new_category">Tambah Kategori Baru...</option>
+            </select>
             <input
               type="text"
-              id="edit-kategori"
-              placeholder="Contoh: Makanan, Gaji"
+              id="edit-kategori-baru"
+              class="input-kategori-baru"
+              placeholder="Nama Kategori Baru"
+              style="display: none; margin-top: 5px"
             />
           </div>
           <div>
@@ -228,11 +235,20 @@
                   </select>
                 </div>
                 <div>
-                  <label for="kategori">Kategori:</label>
+                  <label for="kategori-select">Kategori:</label>
+                  <select id="kategori-select">
+                    <option value="">-- Pilih Kategori --</option>
+                    <!-- Opsi kategori akan diisi oleh JavaScript -->
+                    <option value="add_new_category">
+                      Tambah Kategori Baru...
+                    </option>
+                  </select>
                   <input
                     type="text"
-                    id="kategori"
-                    placeholder="Contoh: Gaji, Makanan, Transportasi, Tabungan"
+                    id="input-kategori-baru"
+                    class="input-kategori-baru"
+                    placeholder="Nama Kategori Baru"
+                    style="display: none; margin-top: 5px"
                   />
                 </div>
                 <div>
@@ -274,12 +290,20 @@
               <h3><i class="fas fa-plus-circle"></i> Tambah/Edit Anggaran</h3>
               <form id="form-anggaran">
                 <div>
-                  <label for="anggaran-kategori">Kategori:</label>
+                  <label for="anggaran-kategori-select">Kategori:</label>
+                  <select id="anggaran-kategori-select">
+                    <option value="">-- Pilih Kategori --</option>
+                    <!-- Opsi kategori akan diisi oleh JavaScript -->
+                    <option value="add_new_category">
+                      Tambah Kategori Baru...
+                    </option>
+                  </select>
                   <input
                     type="text"
-                    id="anggaran-kategori"
-                    placeholder="Contoh: Makanan, Transportasi"
-                    required
+                    id="input-anggaran-kategori-baru"
+                    class="input-kategori-baru"
+                    placeholder="Nama Kategori Baru"
+                    style="display: none; margin-top: 5px"
                   />
                 </div>
                 <div>
@@ -341,7 +365,9 @@
                 gambaran jelas antara kebutuhan dan keinginan.
               </p>
               <details class="saran-details">
-                <summary>Baca Selengkapnya</summary>
+                <summary>
+                  Baca Selengkapnya <i class="fas fa-chevron-down"></i>
+                </summary>
                 <p>
                   <strong>Kelebihan:</strong> Mudah dipahami dan
                   diimplementasikan, memberikan keseimbangan antara pengeluaran
@@ -384,7 +410,9 @@
                 impulsif.
               </p>
               <details class="saran-details">
-                <summary>Baca Selengkapnya</summary>
+                <summary>
+                  Baca Selengkapnya <i class="fas fa-chevron-down"></i>
+                </summary>
                 <p>
                   <strong>Kelebihan:</strong> Memberikan kesadaran penuh atas
                   pengeluaran, membantu mengidentifikasi pemborosan, memaksa
@@ -424,7 +452,9 @@
                 menabung. Fokus utama adalah membangun kekayaan.
               </p>
               <details class="saran-details">
-                <summary>Baca Selengkapnya</summary>
+                <summary>
+                  Baca Selengkapnya <i class="fas fa-chevron-down"></i>
+                </summary>
                 <p>
                   <strong>Kelebihan:</strong> Memastikan tabungan dan investasi
                   menjadi prioritas, membangun kebiasaan menabung otomatis,
@@ -464,7 +494,9 @@
                 visual dan konkret.
               </p>
               <details class="saran-details">
-                <summary>Baca Selengkapnya</summary>
+                <summary>
+                  Baca Selengkapnya <i class="fas fa-chevron-down"></i>
+                </summary>
                 <p>
                   <strong>Kelebihan:</strong> Sangat efektif mengontrol
                   pengeluaran berlebih, visual dan mudah dipahami, membantu
@@ -505,7 +537,9 @@
                 diri yang baik.
               </p>
               <details class="saran-details">
-                <summary>Baca Selengkapnya</summary>
+                <summary>
+                  Baca Selengkapnya <i class="fas fa-chevron-down"></i>
+                </summary>
                 <p>
                   <strong>Kelebihan:</strong> Lebih personal dan memuaskan,
                   mengurangi rasa "bersalah" saat belanja untuk hal yang penting
@@ -527,6 +561,51 @@
                   belanja baju agar bisa menabung lebih banyak untuk liburan
                   tahunannya. Dia juga berinvestasi pada kursus online yang
                   mendukung karirnya karena itu bernilai baginya.
+                </p>
+              </details>
+            </article>
+
+            <article class="saran-item card">
+              <h3>Kakeibo (Buku Catatan Keuangan Rumah Tangga Jepang)</h3>
+              <p>
+                <strong>Deskripsi:</strong> Metode tradisional Jepang yang fokus
+                pada pencatatan pengeluaran secara manual dan refleksi mendalam
+                terhadap kebiasaan belanja. Tujuannya adalah meningkatkan
+                kesadaran finansial dan mendorong penghematan.
+              </p>
+              <p>
+                <strong>Kapan Memilih:</strong> Jika Anda menyukai pendekatan
+                yang lebih mindful, reflektif, dan tidak terlalu bergantung pada
+                teknologi. Cocok jika Anda ingin memahami "mengapa" Anda
+                belanja, bukan hanya "apa".
+              </p>
+              <details class="saran-details">
+                <summary>
+                  Baca Selengkapnya <i class="fas fa-chevron-down"></i>
+                </summary>
+                <p>
+                  <strong>Kelebihan:</strong> Meningkatkan kesadaran finansial
+                  secara signifikan, membantu mengidentifikasi pola pengeluaran
+                  emosional, mendorong penghematan yang disengaja.
+                </p>
+                <p>
+                  <strong>Kekurangan:</strong> Membutuhkan pencatatan manual
+                  yang konsisten (bisa di buku atau spreadsheet), mungkin kurang
+                  praktis bagi sebagian orang, tidak memberikan persentase
+                  alokasi yang kaku.
+                </p>
+                <p>
+                  <strong>Cocok untuk Gaji:</strong> Semua range gaji, karena
+                  fokusnya pada kesadaran dan penghematan, bukan alokasi
+                  persentase.
+                </p>
+                <p>
+                  <strong>Studi Kasus:</strong> Setiap akhir hari, Rina mencatat
+                  semua pengeluarannya di buku Kakeibo. Di akhir minggu, ia
+                  mereview dan bertanya pada dirinya sendiri: "Berapa banyak
+                  uang yang saya miliki?", "Berapa banyak yang ingin saya
+                  tabung?", "Berapa banyak yang saya belanjakan?", "Bagaimana
+                  saya bisa lebih baik?".
                 </p>
               </details>
             </article>

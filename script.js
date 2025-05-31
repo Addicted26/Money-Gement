@@ -22,7 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const editDeskripsiEl = document.getElementById("edit-deskripsi");
   const editNominalEl = document.getElementById("edit-nominal");
   const editJenisTransaksiEl = document.getElementById("edit-jenis-transaksi");
-  const editKategoriEl = document.getElementById("edit-kategori");
+  const editKategoriSelectEl = document.getElementById("edit-kategori-select");
+  const editKategoriBaruEl = document.getElementById("edit-kategori-baru");
   const editTanggalTransaksiEl = document.getElementById(
     "edit-tanggal-transaksi"
   );
@@ -59,7 +60,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const inputDeskripsi = document.getElementById("deskripsi");
   const inputNominal = document.getElementById("nominal");
   const inputJenisTransaksi = document.getElementById("jenis-transaksi");
-  const inputKategori = document.getElementById("kategori");
+  const kategoriSelectEl = document.getElementById("kategori-select");
+  const inputKategoriBaruEl = document.getElementById("input-kategori-baru");
   const inputTanggalTransaksi = document.getElementById("tanggal-transaksi");
   const listItemTransaksiEl = document.getElementById("list-item-transaksi");
   const filterBulanEl = document.getElementById("filter-bulan");
@@ -69,7 +71,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Anggaran Elements
   const formAnggaran = document.getElementById("form-anggaran");
-  const inputAnggaranKategori = document.getElementById("anggaran-kategori");
+  const anggaranKategoriSelectEl = document.getElementById(
+    "anggaran-kategori-select"
+  );
+  const inputAnggaranKategoriBaruEl = document.getElementById(
+    "input-anggaran-kategori-baru"
+  );
   const inputAnggaranNominal = document.getElementById("anggaran-nominal");
   const listItemAnggaranEl = document.getElementById("list-item-anggaran");
   const progresAnggaranContainerEl = document.getElementById(
@@ -86,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const inputTargetNabungTanggal = document.getElementById(
     "target-nabung-tanggal"
   );
-  const formGaji = document.getElementById("form-gaji");
+  const formGaji = document.getElementById("form-gaji"); // Form ini tidak di-submit, tapi tombol di dalamnya
   const inputGajiDeskripsi = document.getElementById("gaji-deskripsi");
   const inputGajiNominal = document.getElementById("gaji-nominal");
   const btnCatatGaji = document.getElementById("catat-gaji-otomatis");
@@ -102,18 +109,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const statsTrenTahunEl = document.getElementById("stats-tren-tahun");
 
   // --- Data Storage & State ---
-  let transactions = JSON.parse(localStorage.getItem("transactions_v6")) || [];
-  let limitData = JSON.parse(localStorage.getItem("limitData_v6")) || {
+  let transactions = JSON.parse(localStorage.getItem("transactions_v7")) || [];
+  let limitData = JSON.parse(localStorage.getItem("limitData_v7")) || {
     nominal: 0,
   };
   let targetNabungData = JSON.parse(
-    localStorage.getItem("targetNabungData_v6")
+    localStorage.getItem("targetNabungData_v7")
   ) || { targetNominal: 0, terkumpul: 0, targetTanggal: null };
-  let gajiData = JSON.parse(localStorage.getItem("gajiData_v6")) || {
+  let gajiData = JSON.parse(localStorage.getItem("gajiData_v7")) || {
     deskripsi: "Gaji Pokok",
     nominal: 0,
   };
-  let budgetsData = JSON.parse(localStorage.getItem("budgetsData_v6")) || {};
+  let budgetsData = JSON.parse(localStorage.getItem("budgetsData_v7")) || {};
+  let categories = JSON.parse(localStorage.getItem("categories_v7")) || [
+    "Makanan",
+    "Transportasi",
+    "Gaji",
+    "Hiburan",
+    "Tagihan",
+    "Pendidikan",
+    "Kesehatan",
+    "Tabungan",
+    "Lainnya",
+  ];
   let currentTransactionToEditId = null;
 
   // --- Utility Functions ---
@@ -178,7 +196,8 @@ document.addEventListener("DOMContentLoaded", () => {
       !editDeskripsiEl ||
       !editNominalEl ||
       !editJenisTransaksiEl ||
-      !editKategoriEl ||
+      !editKategoriSelectEl ||
+      !editKategoriBaruEl ||
       !editTanggalTransaksiEl
     )
       return;
@@ -187,7 +206,11 @@ document.addEventListener("DOMContentLoaded", () => {
     editDeskripsiEl.value = transaction.deskripsi;
     editNominalEl.value = Math.abs(transaction.nominal);
     editJenisTransaksiEl.value = transaction.jenis;
-    editKategoriEl.value = transaction.kategori;
+
+    populateCategoryDropdown(editKategoriSelectEl, transaction.kategori);
+    editKategoriBaruEl.style.display = "none";
+    editKategoriBaruEl.value = "";
+
     editTanggalTransaksiEl.value = transaction.tanggal;
     editModal.style.display = "block";
   }
@@ -231,6 +254,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (targetId === "anggaran") {
       renderBudgetList();
       renderBudgetProgress();
+      populateCategoryDropdown(anggaranKategoriSelectEl);
+    }
+    if (
+      targetId === "transaksi" ||
+      targetId === "dashboard" ||
+      document.getElementById("form-transaksi")
+    ) {
+      populateCategoryDropdown(kategoriSelectEl);
     }
   }
   navLinks.forEach((link) => {
@@ -240,19 +271,97 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // --- Core Logic Functions ---
-  function saveData() {
-    localStorage.setItem("transactions_v6", JSON.stringify(transactions));
-    localStorage.setItem("limitData_v6", JSON.stringify(limitData));
-    localStorage.setItem(
-      "targetNabungData_v6",
-      JSON.stringify(targetNabungData)
-    );
-    localStorage.setItem("gajiData_v6", JSON.stringify(gajiData));
-    localStorage.setItem("budgetsData_v6", JSON.stringify(budgetsData));
+  // --- Category Management ---
+  function saveCategories() {
+    localStorage.setItem("categories_v7", JSON.stringify(categories));
   }
 
-  function addTransaction(deskripsi, nominal, jenis, kategori, tanggal) {
+  function addCategory(newCategoryName) {
+    const trimmedCategory = newCategoryName.trim();
+    const normalizedCategory =
+      trimmedCategory.charAt(0).toUpperCase() +
+      trimmedCategory.slice(1).toLowerCase();
+
+    if (
+      normalizedCategory &&
+      !categories
+        .map((c) => c.toLowerCase())
+        .includes(normalizedCategory.toLowerCase())
+    ) {
+      categories.push(normalizedCategory);
+      categories.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      saveCategories();
+      populateAllCategoryDropdowns(normalizedCategory);
+      showNotification(
+        `Kategori "${normalizedCategory}" berhasil ditambahkan.`,
+        "success"
+      );
+      return normalizedCategory;
+    } else if (!trimmedCategory) {
+      showNotification("Nama kategori tidak boleh kosong.", "error");
+    } else {
+      showNotification(`Kategori "${trimmedCategory}" sudah ada.`, "info");
+    }
+    return null;
+  }
+
+  function populateCategoryDropdown(selectElement, selectedValue = null) {
+    if (!selectElement) return;
+    const currentValue = selectedValue || selectElement.value;
+    selectElement.innerHTML = '<option value="">-- Pilih Kategori --</option>';
+    categories.forEach((cat) => {
+      const option = new Option(cat, cat);
+      selectElement.add(option);
+    });
+    selectElement.add(
+      new Option("Tambah Kategori Baru...", "add_new_category")
+    );
+
+    if (
+      currentValue &&
+      selectElement.querySelector(`option[value="${currentValue}"]`)
+    ) {
+      selectElement.value = currentValue;
+    } else if (
+      !currentValue &&
+      selectElement.options.length > 1 &&
+      selectElement.options[0].value === ""
+    ) {
+      selectElement.value = ""; // Tetap pada "-- Pilih Kategori --" jika tidak ada selectedValue
+    }
+  }
+
+  function populateAllCategoryDropdowns(selectedValueToSet = null) {
+    populateCategoryDropdown(kategoriSelectEl, selectedValueToSet);
+    populateCategoryDropdown(anggaranKategoriSelectEl, selectedValueToSet);
+    populateCategoryDropdown(editKategoriSelectEl, selectedValueToSet);
+  }
+
+  function handleCategorySelection(selectEl, inputNewCatEl) {
+    if (!selectEl || !inputNewCatEl) return;
+    if (selectEl.value === "add_new_category") {
+      inputNewCatEl.style.display = "block";
+      inputNewCatEl.focus();
+    } else {
+      inputNewCatEl.style.display = "none";
+      inputNewCatEl.value = "";
+    }
+  }
+
+  // --- Core Logic Functions ---
+  function saveData() {
+    localStorage.setItem("transactions_v7", JSON.stringify(transactions));
+    localStorage.setItem("limitData_v7", JSON.stringify(limitData));
+    localStorage.setItem(
+      "targetNabungData_v7",
+      JSON.stringify(targetNabungData)
+    );
+    localStorage.setItem("gajiData_v7", JSON.stringify(gajiData));
+    localStorage.setItem("budgetsData_v7", JSON.stringify(budgetsData));
+    saveCategories();
+  }
+
+  function addTransaction(deskripsi, nominal, jenis, kategoriValue, tanggal) {
     const newTransaction = {
       id: generateID(),
       deskripsi,
@@ -260,15 +369,15 @@ document.addEventListener("DOMContentLoaded", () => {
         jenis === "pemasukan" ? parseFloat(nominal) : -parseFloat(nominal),
       jenis,
       kategori:
-        kategori.trim() || (jenis === "pemasukan" ? "Lainnya" : "Lainnya"),
+        kategoriValue.trim() || (jenis === "pemasukan" ? "Lainnya" : "Lainnya"),
       tanggal,
     };
     transactions.push(newTransaction);
     if (
       (jenis === "pengeluaran" || jenis === "pemasukan") &&
-      kategori.toLowerCase().includes("tabung")
+      kategoriValue.toLowerCase().includes("tabung")
     ) {
-      targetNabungData.terkumpul += parseFloat(nominal); // Pengeluaran ke tabungan = tambah ke terkumpul
+      targetNabungData.terkumpul += parseFloat(nominal);
       if (targetNabungData.terkumpul < 0) targetNabungData.terkumpul = 0;
       if (
         targetNabungData.targetNominal > 0 &&
@@ -293,14 +402,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const transactionIndex = transactions.findIndex((t) => t.id === id);
     if (transactionIndex === -1) return;
     const oldTransaction = { ...transactions[transactionIndex] };
-
     const oldIsTabungan = oldTransaction.kategori
       .toLowerCase()
       .includes("tabung");
     const newIsTabungan = updatedData.kategori.toLowerCase().includes("tabung");
     const oldNominalAbs = Math.abs(oldTransaction.nominal);
     const newNominalForTabungan = Math.abs(updatedData.nominal);
-
     if (oldIsTabungan && !newIsTabungan)
       targetNabungData.terkumpul -= oldNominalAbs;
     else if (!oldIsTabungan && newIsTabungan)
@@ -309,7 +416,6 @@ document.addEventListener("DOMContentLoaded", () => {
       targetNabungData.terkumpul -= oldNominalAbs;
       targetNabungData.terkumpul += newNominalForTabungan;
     }
-
     if (targetNabungData.terkumpul < 0) targetNabungData.terkumpul = 0;
     if (
       targetNabungData.targetNominal > 0 &&
@@ -317,7 +423,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ) {
       targetNabungData.terkumpul = targetNabungData.targetNominal;
     }
-
     transactions[transactionIndex] = { id: oldTransaction.id, ...updatedData };
     sortTransactionsByDate();
     updateUI();
@@ -343,8 +448,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- Budget Functions ---
-  function addOrUpdateBudget(kategoriInput, nominalInput) {
-    const kategori = kategoriInput.trim();
+  function addOrUpdateBudget(kategoriValue, nominalInput) {
+    const kategori = kategoriValue.trim();
     const nominal = parseFloat(nominalInput);
     if (!kategori || isNaN(nominal) || nominal < 0) {
       showNotification(
@@ -355,45 +460,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     budgetsData[kategori] = nominal;
     updateUI();
-    showNotification(
-      `Anggaran untuk "${kategori}" berhasil disimpan.`,
-      "success"
-    );
+    showNotification(`Anggaran untuk "${kategori}" disimpan.`, "success");
   }
-
   function removeBudget(kategori) {
     if (budgetsData.hasOwnProperty(kategori)) {
       delete budgetsData[kategori];
       updateUI();
-      showNotification(
-        `Anggaran untuk "${kategori}" berhasil dihapus.`,
-        "info"
-      );
+      showNotification(`Anggaran untuk "${kategori}" dihapus.`, "info");
     }
   }
-
   function renderBudgetList() {
     if (!listItemAnggaranEl) return;
     listItemAnggaranEl.innerHTML = "";
     const budgetKeys = Object.keys(budgetsData);
     if (budgetKeys.length === 0) {
-      listItemAnggaranEl.innerHTML = "<li>Belum ada anggaran yang diatur.</li>";
+      listItemAnggaranEl.innerHTML = "<li>Belum ada anggaran.</li>";
       return;
     }
     budgetKeys.sort().forEach((kategori) => {
       const nominal = budgetsData[kategori];
       const li = document.createElement("li");
-      li.innerHTML = `
-                <div class="anggaran-info">
-                    <span class="category">${kategori}</span>
-                    <span class="amount">${formatRupiah(nominal)} / bulan</span>
-                </div>
-                <button class="delete-anggaran-btn" data-kategori="${kategori}" title="Hapus Anggaran"><i class="fas fa-trash-alt"></i></button>
-            `;
+      li.innerHTML = `<div class="anggaran-info"><span class="category">${kategori}</span><span class="amount">${formatRupiah(
+        nominal
+      )} / bln</span></div><button class="delete-anggaran-btn" data-kategori="${kategori}" title="Hapus"><i class="fas fa-trash-alt"></i></button>`;
       listItemAnggaranEl.appendChild(li);
     });
   }
-
   function getSpentForCategoryThisMonth(kategori) {
     const now = new Date();
     const currentMonthStr =
@@ -408,7 +500,6 @@ document.addEventListener("DOMContentLoaded", () => {
       )
       .reduce((acc, t) => acc + Math.abs(t.nominal), 0);
   }
-
   function renderBudgetProgress(targetElement = progresAnggaranContainerEl) {
     if (!targetElement) return;
     targetElement.innerHTML = "";
@@ -418,13 +509,13 @@ document.addEventListener("DOMContentLoaded", () => {
       targetElement.id === "progres-anggaran-container"
     ) {
       targetElement.innerHTML =
-        '<p class="info-text">Atur anggaran untuk melihat progresnya di sini.</p>';
+        '<p class="info-text">Atur anggaran untuk lihat progres.</p>';
       return;
     } else if (
       budgetKeys.length === 0 &&
       targetElement.id === "list-anggaran-dashboard"
     ) {
-      targetElement.innerHTML = "<li>Belum ada anggaran yang diatur.</li>";
+      targetElement.innerHTML = "<li>Belum ada anggaran.</li>";
       return;
     }
     budgetKeys.sort().forEach((kategori) => {
@@ -436,20 +527,13 @@ document.addEventListener("DOMContentLoaded", () => {
       let progressBarClass = "";
       if (percentage >= 100) progressBarClass = "danger";
       else if (percentage >= 80) progressBarClass = "warning";
-      const itemHtml = `
-                <div class="anggaran-progress-info">
-                    <span class="category-name">${kategori}</span>
-                    <span class="amounts-spent">${formatRupiah(
-                      spentNominal
-                    )} / ${formatRupiah(budgetNominal)}</span>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar ${progressBarClass}" style="width: ${percentageDisplay}%;">
-                        <span class="progress-text">${Math.round(
-                          percentage
-                        )}%</span>
-                    </div>
-                </div>`;
+      const itemHtml = `<div class="anggaran-progress-info"><span class="category-name">${kategori}</span><span class="amounts-spent">${formatRupiah(
+        spentNominal
+      )} / ${formatRupiah(
+        budgetNominal
+      )}</span></div><div class="progress-bar-container"><div class="progress-bar ${progressBarClass}" style="width: ${percentageDisplay}%;"><span class="progress-text">${Math.round(
+        percentage
+      )}%</span></div></div>`;
       if (targetElement.id === "list-anggaran-dashboard") {
         const li = document.createElement("li");
         li.innerHTML = itemHtml;
@@ -698,25 +782,15 @@ document.addEventListener("DOMContentLoaded", () => {
         month: "short",
         year: "numeric",
       });
-      item.innerHTML = `
-                <span class="deskripsi-item">${t.deskripsi}</span>
-                ${
-                  t.kategori
-                    ? `<span class="kategori-item">${t.kategori}</span>`
-                    : ""
-                }
-                <span class="tanggal-item">${formattedDate}</span>
-                <span class="jumlah-item">${sign} ${formatRupiah(
+      item.innerHTML = `<span class="deskripsi-item">${t.deskripsi}</span>${
+        t.kategori ? `<span class="kategori-item">${t.kategori}</span>` : ""
+      }<span class="tanggal-item">${formattedDate}</span><span class="jumlah-item">${sign} ${formatRupiah(
         Math.abs(t.nominal)
-      )}</span>
-                <div class="aksi-item">
-                    <button class="edit-btn-item" data-id="${
-                      t.id
-                    }" title="Edit"><i class="fas fa-edit"></i></button>
-                    <button class="hapus-btn-item" data-id="${
-                      t.id
-                    }" title="Hapus"><i class="fas fa-trash-alt"></i></button>
-                </div>`;
+      )}</span><div class="aksi-item"><button class="edit-btn-item" data-id="${
+        t.id
+      }" title="Edit"><i class="fas fa-edit"></i></button><button class="hapus-btn-item" data-id="${
+        t.id
+      }" title="Hapus"><i class="fas fa-trash-alt"></i></button></div>`;
       listItemTransaksiEl.appendChild(item);
     });
   }
@@ -812,10 +886,12 @@ document.addEventListener("DOMContentLoaded", () => {
       data: Object.keys(categorySpending)
         .sort()
         .map((key) => categorySpending[key]),
-    }; // Sort labels
+    };
   }
   function renderKategoriChart() {
     const { labels, data } = getCategorySpendingData();
+    const totalSpendingForPeriod = data.reduce((sum, value) => sum + value, 0);
+
     if (kategoriChartInstance) kategoriChartInstance.destroy();
     kategoriChartInstance = new Chart(kategoriChartCtx, {
       type: "doughnut",
@@ -841,7 +917,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     "#FFA07A",
                     "#20B2AA",
                   ].slice(0, labels.length)
-                : ["#E0E0E0"], // Tambah warna
+                : ["#E0E0E0"],
             hoverOffset: 4,
           },
         ],
@@ -849,7 +925,28 @@ document.addEventListener("DOMContentLoaded", () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: "bottom" } },
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                let label = context.label || "";
+                if (label) label += ": ";
+                const value = context.raw;
+                if (value !== null && totalSpendingForPeriod > 0) {
+                  const percentage = (
+                    (value / totalSpendingForPeriod) *
+                    100
+                  ).toFixed(1);
+                  label += formatRupiah(value) + ` (${percentage}%)`;
+                } else if (value !== null) {
+                  label += formatRupiah(value);
+                }
+                return label;
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -930,6 +1027,9 @@ document.addEventListener("DOMContentLoaded", () => {
     updateNabungDisplay();
     renderDashboardTransactions();
     renderBudgetProgress(listAnggaranDashboardEl);
+
+    populateAllCategoryDropdowns();
+
     if (filterBulanEl && filterTahunEl) {
       populateFilterOptions(filterBulanEl, "month");
       populateFilterOptions(filterTahunEl, "year");
@@ -953,6 +1053,26 @@ document.addEventListener("DOMContentLoaded", () => {
   if (formTransaksi)
     formTransaksi.addEventListener("submit", (e) => {
       e.preventDefault();
+      let kategoriFinal = kategoriSelectEl.value;
+      if (kategoriFinal === "add_new_category") {
+        const newCatName = inputKategoriBaruEl.value.trim();
+        if (!newCatName) {
+          showNotification("Nama kategori baru tidak boleh kosong.", "error");
+          return;
+        }
+        const addedCat = addCategory(newCatName); // addCategory sudah memanggil populateAllCategoryDropdowns dan saveCategories
+        if (addedCat) {
+          kategoriFinal = addedCat;
+          kategoriSelectEl.value = addedCat; // Pastikan yang baru terpilih
+        } else return; // Gagal menambah, mungkin karena duplikat atau kosong
+      } else if (!kategoriFinal) {
+        showNotification(
+          "Mohon pilih kategori atau tambahkan yang baru.",
+          "error"
+        );
+        return;
+      }
+
       if (
         !inputDeskripsi.value ||
         !inputNominal.value ||
@@ -968,13 +1088,19 @@ document.addEventListener("DOMContentLoaded", () => {
         inputDeskripsi.value,
         inputNominal.value,
         inputJenisTransaksi.value,
-        inputKategori.value,
+        kategoriFinal,
         inputTanggalTransaksi.value
       );
       formTransaksi.reset();
       if (inputTanggalTransaksi) inputTanggalTransaksi.valueAsDate = new Date();
       if (inputDeskripsi) inputDeskripsi.focus();
+      populateCategoryDropdown(kategoriSelectEl); // Reset dropdown ke pilihan default
+      if (inputKategoriBaruEl) {
+        inputKategoriBaruEl.style.display = "none";
+        inputKategoriBaruEl.value = "";
+      }
     });
+
   if (listItemTransaksiEl)
     listItemTransaksiEl.addEventListener("click", (e) => {
       const targetButton = e.target.closest("button");
@@ -993,10 +1119,31 @@ document.addEventListener("DOMContentLoaded", () => {
         if (transactionToEdit) openEditModal(transactionToEdit);
       }
     });
+
   if (formEditTransaksi)
     formEditTransaksi.addEventListener("submit", (e) => {
       e.preventDefault();
       const id = editTransaksiIdEl.value;
+      let kategoriFinal = editKategoriSelectEl.value;
+      if (kategoriFinal === "add_new_category") {
+        const newCatName = editKategoriBaruEl.value.trim();
+        if (!newCatName) {
+          showNotification("Nama kategori baru tidak boleh kosong.", "error");
+          return;
+        }
+        const addedCat = addCategory(newCatName);
+        if (addedCat) {
+          kategoriFinal = addedCat;
+          editKategoriSelectEl.value = addedCat;
+        } else return;
+      } else if (!kategoriFinal) {
+        showNotification(
+          "Mohon pilih kategori atau tambahkan yang baru.",
+          "error"
+        );
+        return;
+      }
+
       if (
         !editDeskripsiEl.value ||
         !editNominalEl.value ||
@@ -1012,17 +1159,20 @@ document.addEventListener("DOMContentLoaded", () => {
             ? parseFloat(editNominalEl.value)
             : -parseFloat(editNominalEl.value),
         jenis: editJenisTransaksiEl.value,
-        kategori:
-          editKategoriEl.value.trim() ||
-          (editJenisTransaksiEl.value === "pemasukan" ? "Lainnya" : "Lainnya"),
+        kategori: kategoriFinal,
         tanggal: editTanggalTransaksiEl.value,
       };
       updateTransaction(id, updatedData);
       closeEditModal();
     });
+
   if (formLimit)
     formLimit.addEventListener("submit", (e) => {
       e.preventDefault();
+      if (!inputLimitNominal) {
+        showNotification("Error: Elemen input limit tidak ditemukan.", "error");
+        return;
+      }
       const nominal = parseFloat(inputLimitNominal.value);
       if (isNaN(nominal) || nominal < 0) {
         showNotification("Masukkan nominal limit yang valid.", "error");
@@ -1035,6 +1185,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (formTargetNabung)
     formTargetNabung.addEventListener("submit", (e) => {
       e.preventDefault();
+      if (!inputTargetNabungNominal || !inputTargetNabungTanggal) {
+        showNotification(
+          "Error: Elemen input target nabung tidak ditemukan.",
+          "error"
+        );
+        return;
+      }
       const target = parseFloat(inputTargetNabungNominal.value);
       const tanggal = inputTargetNabungTanggal.value;
       if (isNaN(target) || target <= 0) {
@@ -1059,6 +1216,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   if (btnCatatGaji)
     btnCatatGaji.addEventListener("click", () => {
+      if (!inputGajiDeskripsi || !inputGajiNominal) {
+        showNotification("Error: Elemen input gaji tidak ditemukan.", "error");
+        return;
+      }
       const deskripsi = inputGajiDeskripsi.value.trim();
       const nominal = parseFloat(inputGajiNominal.value);
       if (!deskripsi || isNaN(nominal) || nominal <= 0) {
@@ -1083,17 +1244,19 @@ document.addEventListener("DOMContentLoaded", () => {
           t.nominal === nominal
       );
       if (sudahDicatat) {
-        if (
-          !confirm(
-            `Gaji "${deskripsi}" (${formatRupiah(
-              nominal
-            )}) sepertinya sudah dicatat bulan ini. Tetap catat lagi?`
-          )
-        )
-          return;
+        openConfirmModal(
+          "Konfirmasi Catat Gaji",
+          `Gaji "${deskripsi}" (${formatRupiah(
+            nominal
+          )}) sepertinya sudah dicatat bulan ini. Tetap catat lagi?`,
+          () =>
+            addTransaction(deskripsi, nominal, "pemasukan", "Gaji", tanggalGaji)
+        );
+      } else {
+        addTransaction(deskripsi, nominal, "pemasukan", "Gaji", tanggalGaji);
       }
-      addTransaction(deskripsi, nominal, "pemasukan", "Gaji", tanggalGaji);
     });
+
   if (filterBulanEl)
     filterBulanEl.addEventListener("change", filterAndRenderTransactions);
   if (filterTahunEl)
@@ -1120,17 +1283,41 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   if (statsTrenTahunEl)
     statsTrenTahunEl.addEventListener("change", renderTrenChart);
+  if (exportCsvBtn)
+    exportCsvBtn.addEventListener("click", exportTransactionsToCSV);
+
   if (formAnggaran) {
     formAnggaran.addEventListener("submit", (e) => {
       e.preventDefault();
-      addOrUpdateBudget(
-        inputAnggaranKategori.value,
-        inputAnggaranNominal.value
-      );
+      let kategoriFinal = anggaranKategoriSelectEl.value;
+      if (kategoriFinal === "add_new_category") {
+        const newCatName = inputAnggaranKategoriBaruEl.value.trim();
+        if (!newCatName) {
+          showNotification("Nama kategori baru tidak boleh kosong.", "error");
+          return;
+        }
+        const addedCat = addCategory(newCatName);
+        if (addedCat) {
+          kategoriFinal = addedCat;
+          anggaranKategoriSelectEl.value = addedCat;
+        } else return;
+      } else if (!kategoriFinal) {
+        showNotification(
+          "Mohon pilih kategori atau tambahkan yang baru.",
+          "error"
+        );
+        return;
+      }
+      addOrUpdateBudget(kategoriFinal, inputAnggaranNominal.value);
       formAnggaran.reset();
-      inputAnggaranKategori.focus();
+      if (inputAnggaranKategoriBaruEl) {
+        inputAnggaranKategoriBaruEl.style.display = "none";
+        inputAnggaranKategoriBaruEl.value = "";
+      }
+      populateCategoryDropdown(anggaranKategoriSelectEl);
     });
   }
+
   if (listItemAnggaranEl) {
     listItemAnggaranEl.addEventListener("click", (e) => {
       if (e.target.closest(".delete-anggaran-btn")) {
@@ -1144,8 +1331,22 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-  if (exportCsvBtn)
-    exportCsvBtn.addEventListener("click", exportTransactionsToCSV);
+
+  if (kategoriSelectEl)
+    kategoriSelectEl.addEventListener("change", () =>
+      handleCategorySelection(kategoriSelectEl, inputKategoriBaruEl)
+    );
+  if (anggaranKategoriSelectEl)
+    anggaranKategoriSelectEl.addEventListener("change", () =>
+      handleCategorySelection(
+        anggaranKategoriSelectEl,
+        inputAnggaranKategoriBaruEl
+      )
+    );
+  if (editKategoriSelectEl)
+    editKategoriSelectEl.addEventListener("change", () =>
+      handleCategorySelection(editKategoriSelectEl, editKategoriBaruEl)
+    );
 
   // --- Initial Load ---
   function loadInitialData() {
@@ -1164,6 +1365,7 @@ document.addEventListener("DOMContentLoaded", () => {
       inputGajiNominal.value = gajiData.nominal > 0 ? gajiData.nominal : "";
 
     sortTransactionsByDate();
+    populateAllCategoryDropdowns();
     updateUI();
     switchPage("dashboard");
   }
